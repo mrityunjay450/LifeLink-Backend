@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Request = require('../models/Request');
+const Request = require('../models/request');
 
 
 // 🟢 1. CREATE NEW REQUEST
