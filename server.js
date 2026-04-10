@@ -27,7 +27,7 @@ const authRoutes = require('./routes/authRoutes'); // check if your file is name
 app.use('/api/auth', authRoutes);
 
 // 2. Inventory Management
-const inventoryRoutes = require('./routes/inventoryRoutes');
+const inventoryRoutes = require('./routes/InventoryRoutes');
 app.use('/api/inventory', inventoryRoutes);
 
 // 3. Urgent Blood Requests
