@@ -147,4 +147,16 @@ router.put('/complete/:id', async (req, res) => {
   }
 });
 
+// 🟢 7. GET DONOR HISTORY (Sirf Verified/Completed Donations)
+router.get('/donor-history/:donorName', async (req, res) => {
+  try {
+    const donorName = req.params.donorName;
+    // Status 'fulfilled' matlab Hospital ne verify kar liya hai
+    const history = await Request.find({ acceptedBy: donorName, status: 'fulfilled' }).sort({ updatedAt: -1 });
+    res.status(200).json(history);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching donor history." });
+  }
+});
+
 module.exports = router;
