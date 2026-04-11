@@ -2,17 +2,20 @@ const express = require('express');
 const router = express.Router();
 const Inventory = require('../models/Inventory');
 
-// 🟢 1. GET INVENTORY (Hospital ka stock laane ke liye)
+// 🟢 1. GET INVENTORY (Naye hospital ke liye zero stock initialize karega)
 router.get('/:hospitalName', async (req, res) => {
   try {
     const hospitalName = req.params.hospitalName;
     let inv = await Inventory.findOne({ hospitalName });
 
-    // Agar naya hospital hai aur database me nahi hai, toh default stock bana do
+    // 🚀 FIX: Agar naya hospital hai, toh saare groups 0 se shuru honge
     if (!inv) {
       inv = new Inventory({ 
         hospitalName, 
-        stock: { "A+": 12, "A-": 4, "B+": 18, "B-": 2, "AB+": 8, "AB-": 6, "O+": 25, "O-": 3 } 
+        stock: { 
+          "A+": 0, "A-": 0, "B+": 0, "B-": 0, 
+          "AB+": 0, "AB-": 0, "O+": 0, "O-": 0 
+        } 
       });
       await inv.save();
     }
