@@ -3,7 +3,34 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+// 🚀 1. NAYA ADD KIYA HAI: http aur socket.io import karein
+const http = require('http');
+const { Server } = require('socket.io');
+
 const app = express();
+
+// 🚀 2. NAYA ADD KIYA HAI: Express app ko HTTP server ke andar daalein
+const server = http.createServer(app);
+
+// 🚀 3. NAYA ADD KIYA HAI: Socket.io ka setup karein
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Vercel aur localhost dono ko allow karega
+    methods: ["GET", "POST"]
+  }
+});
+
+// Taaki hum kisi bhi route (jaise requestRoutes.js) se notification bhej sakein
+app.set('socketio', io);
+
+// Jab bhi koi naya Donor/Hospital login karega, ye chalega
+io.on('connection', (socket) => {
+  console.log('🟢 Naya Live Connection Juda: ', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('🔴 Connection Toot Gaya: ', socket.id);
+  });
+});
 
 // 🟢 Middlewares
 app.use(cors()); 
@@ -20,10 +47,8 @@ app.get('/', (req, res) => {
 });
 
 // 🚀 ----- API ROUTES ----- 🚀
-// Dhyan rakhein: Saare routes app.listen se pehle aane chahiye!
-
 // 1. Authentication (Login/Register)
-const authRoutes = require('./routes/authRoutes'); // check if your file is named autoRoutes.js or authRoutes.js
+const authRoutes = require('./routes/authRoutes'); 
 app.use('/api/auth', authRoutes);
 
 // 2. Inventory Management
@@ -38,13 +63,14 @@ app.use('/api/requests', requestRoutes);
 const hospitalRoutes = require('./routes/hospitalRoutes');
 app.use('/api/hospitals', hospitalRoutes);
 
-// 5. 🚀 NAYA: Donation Camps
+// 5. Donation Camps
 const campRoutes = require('./routes/campRoutes'); 
 app.use('/api/camps', campRoutes);
 
 
 // 🟢 Server Start (Ye hamesha sabse last me hona chahiye)
+// 🚀 4. NAYA UPDATE KIYA HAI: app.listen ko change karke server.listen karna hai!
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
