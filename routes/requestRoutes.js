@@ -10,7 +10,7 @@ router.post('/create', async (req, res) => {
     await newRequest.save();
 
     // 1. SOCKET.IO TRIGGER (Pop-up ke liye)
-    const io = req.app.get('socketio'); 
+    const io = req.app.get('socketio');
     if (io) {
       io.emit('newBloodRequest', {
         bloodGroup: newRequest.bloodGroup,
@@ -22,13 +22,13 @@ router.post('/create', async (req, res) => {
 
     // 🚀 2. GOOGLE APPS SCRIPT TRIGGER (100% Render Bypass)
     try {
-      const donors = await User.find({ role: 'donor' }); 
+      const donors = await User.find({ role: 'donor' });
       const donorEmails = donors.map(donor => donor.email).filter(email => email);
 
       if (donorEmails.length > 0) {
-        
+
         // 🔴 Ye raha aapka API URL
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx33eaNAr-QN4gxAwz3AQ3k1naBikeSi1MPWDpGCsy1Qxwc1EYRLfGmcSPKM6eMWaPihA/exec"; 
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx33eaNAr-QN4gxAwz3AQ3k1naBikeSi1MPWDpGCsy1Qxwc1EYRLfGmcSPKM6eMWaPihA/exec";
 
         const emailData = {
           to: donorEmails.join(','), // Ek sath sabko email jayega
@@ -40,6 +40,10 @@ router.post('/create', async (req, res) => {
               <ul>
                 <li><strong>Blood Group Needed:</strong> <span style="color: red; font-size: 18px;">${newRequest.bloodGroup}</span></li>
                 <li><strong>Hospital Name:</strong> ${newRequest.hospitalName}</li>
+                
+                <li><strong>Location/City:</strong> ${newRequest.location || newRequest.city || "Location not provided"}</li>
+                <li><strong>Contact Number:</strong> ${newRequest.contactNumber || "Contact Hospital"}</li>
+                
                 <li><strong>Patient Name:</strong> ${newRequest.patientName}</li>
               </ul>
               <p>Please log in to your <b>LifeLink Dashboard</b> immediately to accept this request and save a life. Every second counts!</p>
@@ -52,11 +56,14 @@ router.post('/create', async (req, res) => {
         // Seedha Google ko signal bhejna
         fetch(GOOGLE_SCRIPT_URL, {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8' // 🚀 EMOJIS KO THEEK KARNE WALI LINE
+          },
           body: JSON.stringify(emailData)
         })
-        .then(response => response.json())
-        .then(data => console.log("✅ Google API ne successful Email bhej di:", data))
-        .catch(err => console.log("❌ Google API Error:", err));
+          .then(response => response.json())
+          .then(data => console.log("✅ Google API ne successful Email bhej di:", data))
+          .catch(err => console.log("❌ Google API Error:", err));
       }
     } catch (emailErr) {
       console.log("Email System Error: ", emailErr);
@@ -84,12 +91,12 @@ router.get('/active', async (req, res) => {
 router.put('/accept/:id', async (req, res) => {
   try {
     const requestId = req.params.id;
-    const { donorName, donorContact } = req.body; 
+    const { donorName, donorContact } = req.body;
 
     const updatedRequest = await Request.findByIdAndUpdate(
       requestId,
       { status: 'accepted', acceptedBy: donorName, donorContact: donorContact },
-      { new: true } 
+      { new: true }
     );
 
     if (!updatedRequest) return res.status(404).json({ message: "Request nahi mili!" });
@@ -103,8 +110,8 @@ router.put('/accept/:id', async (req, res) => {
 router.get('/my-requests/:name', async (req, res) => {
   try {
     const userName = req.params.name;
-    const requests = await Request.find({ 
-      $or: [{ patientName: userName }, { hospitalName: userName }] 
+    const requests = await Request.find({
+      $or: [{ patientName: userName }, { hospitalName: userName }]
     }).sort({ createdAt: -1 });
     res.status(200).json(requests);
   } catch (error) {
@@ -129,7 +136,7 @@ router.put('/complete/:id', async (req, res) => {
     const requestId = req.params.id;
     const completedRequest = await Request.findByIdAndUpdate(
       requestId,
-      { status: 'fulfilled' }, 
+      { status: 'fulfilled' },
       { new: true }
     );
     res.status(200).json({ message: "Donation verified and completed!", request: completedRequest });
