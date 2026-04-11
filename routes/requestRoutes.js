@@ -3,11 +3,26 @@ const router = express.Router();
 const Request = require('../models/request');
 
 
-// 🟢 1. CREATE NEW REQUEST
+// 🟢 1. CREATE NEW REQUEST (Yahan Pop-up ka jaadu add hua hai 🚀)
 router.post('/create', async (req, res) => {
   try {
     const newRequest = new Request(req.body);
     await newRequest.save();
+
+    // 🚀 --- SOCKET.IO TRIGGER SHURU --- 🚀
+    // Apne server se 'io' nikal rahe hain jo humne server.js me set kiya tha
+    const io = req.app.get('socketio'); 
+    if (io) {
+      // Yahan se saare connected laptops/phones ko signal bhej rahe hain
+      io.emit('newBloodRequest', {
+        bloodGroup: newRequest.bloodGroup,
+        hospitalName: newRequest.hospitalName,
+        message: `Urgent! ${newRequest.bloodGroup} needed at ${newRequest.hospitalName}`
+      });
+      console.log('📢 Notification bheji gayi: ', newRequest.bloodGroup);
+    }
+    // 🚀 --- SOCKET.IO TRIGGER KHATAM --- 🚀
+
     res.status(201).json({ message: "Blood request generated successfully!", request: newRequest });
   } catch (error) {
     console.error("Request Create Error: ", error);
@@ -53,6 +68,21 @@ router.put('/accept/:id', async (req, res) => {
   }
 });
 
+// 🟢 4. GET MY REQUESTS
+router.get('/my-requests/:name', async (req, res) => {
+  try {
+    const userName = req.params.name;
+
+    const requests = await Request.find({ 
+      $or: [{ patientName: userName }, { hospitalName: userName }] 
+    }).sort({ createdAt: -1 });
+    
+    res.status(200).json(requests);
+  } catch (error) {
+    console.error("My Requests Error: ", error);
+    res.status(500).json({ message: "Server error while fetching history." });
+  }
+});
 
 // 🟢 5. GET HOSPITAL'S ACCEPTED MATCHES (Hospital check karega kon donor aa raha hai)
 router.get('/hospital-matches/:hospitalName', async (req, res) => {
@@ -84,21 +114,4 @@ router.put('/complete/:id', async (req, res) => {
   }
 });
 
-
-module.exports = router;
-
-// 🟢 4. GET MY REQUESTS
-router.get('/my-requests/:name', async (req, res) => {
-  try {
-    const userName = req.params.name;
-
-    const requests = await Request.find({ 
-      $or: [{ patientName: userName }, { hospitalName: userName }] 
-    }).sort({ createdAt: -1 });
-    
-    res.status(200).json(requests);
-  } catch (error) {
-    console.error("My Requests Error: ", error);
-    res.status(500).json({ message: "Server error while fetching history." });
-  }
-});
+module.exports = router;git add .
