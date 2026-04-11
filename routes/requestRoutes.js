@@ -1,26 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Request = require('../models/request');
-const User = require('../models/User'); // 🚀 Donors ki email nikalne ke liye User model import kiya
-const nodemailer = require('nodemailer'); // 🚀 Email bhejne wala tool
+const User = require('../models/User'); // Donors ki email nikalne ke liye
 
-// 🚀 --- EMAIL SETUP SHURU --- 🚀
-const dns = require('dns');
-dns.setDefaultResultOrder('ipv4first');
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: process.env.EMAIL_USER, 
-    pass: process.env.EMAIL_PASS  
-  }
-});
-// 🚀 --- EMAIL SETUP KHATAM --- 🚀
-
-// 🟢 1. CREATE NEW REQUEST (Pop-up + Email)
+// 🟢 1. CREATE NEW REQUEST (Pop-up + Google Script API)
 router.post('/create', async (req, res) => {
   try {
     const newRequest = new Request(req.body);
@@ -34,20 +17,21 @@ router.post('/create', async (req, res) => {
         hospitalName: newRequest.hospitalName,
         message: `Urgent! ${newRequest.bloodGroup} needed at ${newRequest.hospitalName}`
       });
+      console.log('📢 Pop-up Notification bheji gayi: ', newRequest.bloodGroup);
     }
 
-    // 🚀 2. NODEMAILER TRIGGER (Email bhejne ke liye)
+    // 🚀 2. GOOGLE APPS SCRIPT TRIGGER (100% Render Bypass)
     try {
-      // Database se un sabhi users ko nikaalo jo 'Donor' hain
       const donors = await User.find({ role: 'donor' }); 
-      
-      // Unki email IDs ka ek list (array) banao
       const donorEmails = donors.map(donor => donor.email).filter(email => email);
 
       if (donorEmails.length > 0) {
-        const mailOptions = {
-          from: `"LifeLink Urgent" <${process.env.EMAIL_USER}>`, // Bhejne wale ka naam
-          to: donorEmails, // Saare donors ki email list
+        
+        // 🔴 Ye raha aapka API URL
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx33eaNAr-QN4gxAwz3AQ3k1naBikeSi1MPWDpGCsy1Qxwc1EYRLfGmcSPKM6eMWaPihA/exec"; 
+
+        const emailData = {
+          to: donorEmails.join(','), // Ek sath sabko email jayega
           subject: `🚨 URGENT: ${newRequest.bloodGroup} Blood Required!`,
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
@@ -65,16 +49,19 @@ router.post('/create', async (req, res) => {
           `
         };
 
-        // Email Send kardo
-        transporter.sendMail(mailOptions, (error, info) => {
-          if (error) console.log("❌ Email bhejne me error: ", error);
-          else console.log("✅ Emails sent successfully to all Donors!");
-        });
+        // Seedha Google ko signal bhejna
+        fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(emailData)
+        })
+        .then(response => response.json())
+        .then(data => console.log("✅ Google API ne successful Email bhej di:", data))
+        .catch(err => console.log("❌ Google API Error:", err));
       }
     } catch (emailErr) {
       console.log("Email System Error: ", emailErr);
     }
-    // 🚀 --- NODEMAILER TRIGGER KHATAM --- 🚀
+    // 🚀 --- EMAIL TRIGGER KHATAM --- 🚀
 
     res.status(201).json({ message: "Blood request generated successfully!", request: newRequest });
   } catch (error) {
