@@ -35,7 +35,7 @@ router.post('/create', async (req, res) => {
           subject: `🚨 URGENT: ${newRequest.bloodGroup} Blood Required!`,
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-              <h2 style="color: #d9534f;">🚨 Urgent Blood Request</h2>
+              <h2 style="color: #d9534f;">Urgent Blood Request</h2>
               <p>A new urgent blood request has been posted on LifeLink. A patient needs your help!</p>
               <ul>
                 <li><strong>Blood Group Needed:</strong> <span style="color: red; font-size: 18px;">${newRequest.bloodGroup}</span></li>
