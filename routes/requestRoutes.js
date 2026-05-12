@@ -4,13 +4,13 @@ const Request = require('../models/request');
 const User = require('../models/User'); 
 const Inventory = require('../models/Inventory'); // Stock update karne ke liye
 
-// 🟢 1. CREATE NEW REQUEST (Pop-up + Google Script API)
+// 🟢 1. CREATE NEW REQUEST (Pincode Filter Ke Sath)
 router.post('/create', async (req, res) => {
   try {
     const newRequest = new Request(req.body);
     await newRequest.save();
 
-    // SOCKET.IO TRIGGER (Pop-up ke liye)
+    // SOCKET.IO TRIGGER (Pop-up)
     const io = req.app.get('socketio');
     if (io) {
       io.emit('newBloodRequest', {
@@ -18,12 +18,16 @@ router.post('/create', async (req, res) => {
         hospitalName: newRequest.hospitalName,
         message: `Urgent! ${newRequest.bloodGroup} needed at ${newRequest.hospitalName}`
       });
-      console.log('📢 Pop-up Notification sent');
     }
 
-    // 🚀 GOOGLE APPS SCRIPT TRIGGER (Email Bypass)
+    // 🚀 GOOGLE APPS SCRIPT TRIGGER (Email to Same Pincode Donors ONLY)
     try {
-      const donors = await User.find({ role: 'donor' });
+      // MAIN MAGIC YAHAN HAI: Sirf wahi donors nikalo jinka pincode match kare
+      const donors = await User.find({ 
+        role: 'donor', 
+        pincode: newRequest.pincode // 👈 Pincode matching
+      });
+      
       const donorEmails = donors.map(donor => donor.email).filter(email => email);
 
       if (donorEmails.length > 0) {
@@ -31,19 +35,19 @@ router.post('/create', async (req, res) => {
 
         const emailData = {
           to: donorEmails.join(','),
-          subject: `🚨 URGENT: ${newRequest.bloodGroup} Blood Required!`,
+          subject: `🚨 URGENT: ${newRequest.bloodGroup} Blood Required Near You!`,
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-              <h2 style="color: #d9534f;">🚨 Urgent Blood Request</h2>
-              <p>A new urgent blood request has been posted on LifeLink. A patient needs your help!</p>
+              <h2 style="color: #d9534f;">🚨 Urgent Blood Request in Your Area</h2>
+              <p>A patient near you (Pincode: ${newRequest.pincode}) urgently needs your help!</p>
               <ul>
                 <li><strong>Blood Group Needed:</strong> <span style="color: red; font-size: 18px;">${newRequest.bloodGroup}</span></li>
                 <li><strong>Hospital Name:</strong> ${newRequest.hospitalName}</li>
-                <li><strong>Location/City:</strong> ${newRequest.location || "Not provided"}</li>
-                <li><strong>Contact:</strong> ${newRequest.contactNumber || "Contact Hospital"}</li>
+                <li><strong>Location:</strong> ${newRequest.location}</li>
+                <li><strong>Contact:</strong> ${newRequest.contactNumber}</li>
                 <li><strong>Patient Name:</strong> ${newRequest.patientName}</li>
               </ul>
-              <p>Please log in to your dashboard to help save a life!</p>
+              <p>Please log in to your LifeLink dashboard to accept this request and save a life!</p>
               <br/>
               <p>Thank you,<br/><b>Team LifeLink</b></p>
             </div>
@@ -54,25 +58,31 @@ router.post('/create', async (req, res) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json; charset=utf-8' },
           body: JSON.stringify(emailData)
-        })
-          .then(response => response.json())
-          .then(data => console.log("✅ Email sent via Google API:", data))
-          .catch(err => console.log("❌ Google API Error:", err));
+        }).catch(err => console.log("Google API Error:", err));
+      } else {
+        console.log(`No donors found in pincode ${newRequest.pincode}`);
       }
     } catch (emailErr) {
       console.log("Email System Error: ", emailErr);
     }
 
-    res.status(201).json({ message: "Blood request generated successfully!", request: newRequest });
+    res.status(201).json({ message: "Request generated and local donors notified!", request: newRequest });
   } catch (error) {
     res.status(500).json({ message: "Server error while creating request." });
   }
 });
 
-// 🟢 2. GET ALL ACTIVE REQUESTS
-router.get('/active', async (req, res) => {
+// 🟢 2. GET ACTIVE REQUESTS BY PINCODE (Donor Dashboard Ke Liye)
+router.get('/active/:pincode', async (req, res) => {
   try {
-    const requests = await Request.find({ status: 'pending' }).sort({ createdAt: -1 });
+    const userPincode = req.params.pincode;
+    
+    // Sirf wahi pending requests bhejo jo is pincode mein aayi hain
+    const requests = await Request.find({ 
+      status: 'pending',
+      pincode: userPincode // 👈 Pincode filtering
+    }).sort({ createdAt: -1 });
+    
     res.status(200).json(requests);
   } catch (error) {
     res.status(500).json({ message: "Server error while fetching requests." });

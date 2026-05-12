@@ -8,10 +8,9 @@ const requestSchema = new mongoose.Schema({
   urgency: { type: String, enum: ['critical', 'high', 'normal'], default: 'high' },
   location: { type: String, required: true }, 
   status: { type: String, enum: ['pending', 'accepted', 'fulfilled'], default: 'pending' },
-  
-  // 🚀 NAYI LINES: Donor ka data save karne ke liye
-  acceptedBy: { type: String, default: null }, // Donor's name
-  donorContact: { type: String, default: null } // Donor's numeber
+  pincode: { type: String, required: true },
+  acceptedBy: { type: String, default: null },
+  donorContact: { type: String, default: null }
   
 }, { timestamps: true });
 

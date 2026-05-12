@@ -8,7 +8,17 @@ const campSchema = new mongoose.Schema({
   time: { type: String, required: true },
   location: { type: String, required: true },
   description: { type: String },
-  status: { type: String, default: 'Upcoming' } // Upcoming, Ongoing, Completed
+  status: { type: String, default: 'Upcoming' }, // Upcoming, Ongoing, Completed
+  
+  // 🚀 NAYA FEATURE: Is camp mein donate karne walo ki list
+  donorsList: [{
+    donorName: { type: String, required: true },
+    bloodGroup: { type: String, required: true },
+    contact: { type: String },
+    age: { type: Number },
+    gender: { type: String },
+    donatedAt: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Camp', campSchema);
