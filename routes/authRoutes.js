@@ -57,15 +57,14 @@ router.post('/login', async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    // 🚀 FIXED: Frontend ko saari details bhejna zaroori hai (Specially Date)
     res.status(200).json({ 
       message: "Login Successful", 
       token: token,
       userName: user.name,
       userRole: user.role,
       userEmail: user.email,
-      lastDonationDate: user.lastDonationDate, // 🚀 Ye Timer ko zinda rakhega
-      user: { name: user.name, role: user.role, email: user.email }
+      lastDonationDate: user.lastDonationDate,
+      user: { _id: user._id,name: user.name, role: user.role, email: user.email }
     });
   } catch (error) {
     console.error("Login Error: ", error);
