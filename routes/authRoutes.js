@@ -64,7 +64,7 @@ router.post('/login', async (req, res) => {
       userRole: user.role,
       userEmail: user.email,
       lastDonationDate: user.lastDonationDate,
-      user: { _id: user._id,name: user.name, role: user.role, email: user.email }
+      user: { _id: user._id,name: user.name, role: user.role, email: user.email, pincode: user.pincode }
     });
   } catch (error) {
     console.error("Login Error: ", error);
